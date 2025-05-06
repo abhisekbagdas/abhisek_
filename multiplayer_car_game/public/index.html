@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Madness Car Destroy - Multiplayer</title>
+  <link rel="stylesheet" href="styles/style.css" />
+  <style>
+    body { margin: 0; background: #000; font-family: sans-serif; color: #fff; }
+    #menu { text-align: center; padding-top: 50px; }
+    #menu input, #menu button { padding: 10px; margin: 10px; font-size: 16px; }
+    canvas { display: none; background: #222; margin: auto; display: block; }
+  </style>
+</head>
+<body>
+  <div id="menu">
+    <h1>Madness Car Destroy - Multiplayer</h1>
+    <button id="createBtn">Create Room</button>
+    <input type="text" id="roomCode" placeholder="Enter Room Code" />
+    <button id="joinBtn">Join Room</button>
+    <p id="status"></p>
+  </div>
+  <canvas id="gameCanvas" width="400" height="600"></canvas>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="scripts/game.js"></script>
+</body>
+</html>
