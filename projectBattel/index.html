@@ -487,6 +487,7 @@
         document.getElementById("menuBtn").addEventListener("click", () => {
             const menu = document.getElementById("menu");
             menu.style.display = menu.style.display === "flex" ? "none" : "flex";
+            gamePaused = true;
         });
 
         document.querySelectorAll(".level-btn").forEach(btn => {
