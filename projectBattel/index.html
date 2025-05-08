@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Car Game</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: #000;
+            font-family: Arial, sans-serif;
+        }
+
+        canvas {
+            display: block;
+            background: #111;
+        }
+
+        #ui {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+        }
+
+        #levelButtons {
+            position: absolute;
+            bottom: 20px;
+            left: 10px;
+            display: grid;
+            grid-template-columns: 60px;
+            grid-template-rows: repeat(5, 60px);
+            gap: 5px;
+            pointer-events: auto;
+        }
+
+        .level-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid white;
+            border-radius: 10px;
+            color: white;
+            font-size: 16px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+
+        #menuBtn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 10;
+            width: 40px;
+            height: 40px;
+            font-size: 24px;
+            background: #333;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            pointer-events: auto;
+        }
+
+        #menu {
+            position: absolute;
+            top: 60px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 10px;
+            border-radius: 10px;
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 10;
+            pointer-events: auto;
+        }
+
+        #menu button,
+        #menu input,
+        #menu label {
+            margin: 5px 0;
+        }
+
+        #scoreDisplay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-size: 20px;
+            z-index: 10;
+        }
+
+        #startScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            color: white;
+            z-index: 1000;
+            pointer-events: auto;
+        }
+
+        #startScreen button {
+            font-size: 24px;
+            padding: 10px 20px;
+            background: #0a0;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            pointer-events: auto;
+            touch-action: manipulation;
+        }
+
+        #startScreen p {
+            font-size: 16px;
+            margin: 10px 0;
+        }
+
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            right: 10px;
+            display: grid;
+            grid-template-columns: 60px 60px;
+            grid-template-rows: 60px 60px;
+            gap: 5px;
+            z-index: 10;
+            pointer-events: auto;
+        }
+
+        .ctrl-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid white;
+            border-radius: 10px;
+            color: white;
+            font-size: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <div id="ui">
+        <div id="scoreDisplay">Score: 0</div>
+        <button id="menuBtn">☰</button>
+        <div id="menu">
+            <button id="pauseBtn">Pause</button>
+            <button id="resumeBtn">Resume</button>
+            <button id="restartBtn">Restart</button>
+            <label>Car Speed: <span id="carSpeedValue">5</span></label>
+            <input type="range" id="carSpeed" min="1" max="10" value="5">
+            <label>Obstacle Speed: <span id="obstacleSpeedValue">4</span></label>
+            <input type="range" id="obstacleSpeed" min="1" max="10" value="4">
+            <label>Car Color:</label>
+            <input type="color" id="carColor" value="#0000ff">
+            <button id="soundBtn">Toggle Sound</button>
+            <div>High Score: <span id="highScore">0</span></div>
+        </div>
+        <div id="levelButtons">
+            <button class="level-btn" data-level="easy">Easy</button>
+            <button class="level-btn" data-level="medium">Medium</button>
+            <button class="level-btn" data-level="hard">Hard</button>
+            <button class="level-btn" data-level="expert">Expert</button>
+            <button class="level-btn" data-level="insane">Insane</button>
+        </div>
+        <div id="controls">
+            <div class="ctrl-btn" id="leftBtn">◀️</div>
+            <div class="ctrl-btn" id="rightBtn">▶️</div>
+            <div class="ctrl-btn" id="upBtn">🔼</div>
+            <div class="ctrl-btn" id="downBtn">🔽</div>
+        </div>
+        <div id="startScreen">
+            <h1>🚗 Car Game</h1>
+            <p>Use Arrow keys/WASD or on-screen buttons to move</p>
+            <button id="startBtn">Start</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener("resize", resizeCanvas);
+
+        let car = { x: canvas.width / 2 - 25, y: canvas.height - 120, width: 50, height: 100, speed: 5, color: "#0000ff" };
+        let keys = {};
+        let obstacles = [];
+        let smokeParticles = [];
+        let crashParticles = [];
+        let score = 0;
+        let highScore = localStorage.getItem("highScore") ? parseInt(localStorage.getItem("highScore")) : 0;
+        let gameRunning = false;
+        let gamePaused = false;
+        let spawnRate = 1200;
+        let spawnInterval = null;
+        let lastScoreTime = 0;
+        let soundEnabled = true;
+        const crashSound = new Audio("https://www.soundjay.com/buttons/beep-01a.mp3");
+
+        const levelSettings = {
+            easy: { spawnRate: 2000, obstacleSpeed: 2 },
+            medium: { spawnRate: 1200, obstacleSpeed: 4 },
+            hard: { spawnRate: 800, obstacleSpeed: 6 },
+            expert: { spawnRate: 500, obstacleSpeed: 8 },
+            insane: { spawnRate: 300, obstacleSpeed: 10 }
+        };
+
+        function startSpawning() {
+            if (spawnInterval) clearInterval(spawnInterval);
+            spawnInterval = setInterval(spawnObstacle, spawnRate);
+        }
+
+        function stopSpawning() {
+            if (spawnInterval) {
+                clearInterval(spawnInterval);
+                spawnInterval = null;
+            }
+        }
+
+        function resetGame() {
+            try {
+                car.x = canvas.width / 2 - 25;
+                car.y = canvas.height - 120;
+                obstacles = [];
+                smokeParticles = [];
+                crashParticles = [];
+                score = 0;
+                gameRunning = true;
+                gamePaused = false;
+                lastScoreTime = performance.now();
+                document.getElementById("startScreen").style.display = "none";
+                document.getElementById("scoreDisplay").textContent = "Score: " + score;
+                document.getElementById("highScore").textContent = highScore;
+                startSpawning();
+                console.log("Game started");
+                loop();
+            } catch (error) {
+                console.error("Error in resetGame:", error);
+            }
+        }
+
+        function spawnObstacle() {
+            if (!gameRunning || gamePaused) return;
+            const x = Math.random() * (canvas.width - 50);
+            obstacles.push({ x, y: -100, width: 50, height: 100, speed: levelSettings[document.querySelector(".level-btn.active")?.dataset.level]?.obstacleSpeed || 4 });
+        }
+
+        function drawCar() {
+            ctx.fillStyle = car.color;
+            ctx.fillRect(car.x, car.y, car.width, car.height);
+        }
+
+        function updateSmoke() {
+            if (gameRunning && !gamePaused && (keys.left || keys.right || keys.up || keys.down)) {
+                smokeParticles.push({
+                    x: car.x + car.width / 2,
+                    y: car.y + car.height,
+                    size: Math.random() * 10 + 5,
+                    opacity: 1,
+                    vx: Math.random() * 2 - 1,
+                    vy: Math.random() * 2
+                });
+            }
+            for (let i = smokeParticles.length - 1; i >= 0; i--) {
+                const p = smokeParticles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.opacity -= 0.02;
+                if (p.opacity <= 0) smokeParticles.splice(i, 1);
+            }
+        }
+
+        function drawSmoke() {
+            ctx.fillStyle = "rgba(150, 150, 150, " + ctx.globalAlpha + ")";
+            smokeParticles.forEach(p => {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = p.opacity;
+            });
+            ctx.globalAlpha = 1;
+        }
+
+        function triggerCrashEffect() {
+            for (let i = 0; i < 20; i++) {
+                crashParticles.push({
+                    x: car.x + car.width / 2,
+                    y: car.y + car.height / 2,
+                    size: Math.random() * 10 + 5,
+                    opacity: 1,
+                    vx: Math.random() * 6 - 3,
+                    vy: Math.random() * 6 - 3
+                });
+            }
+            ctx.fillStyle = "rgba(255, 0, 0, 0.5)";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            setTimeout(() => {
+                crashParticles = [];
+            }, 500);
+        }
+
+        function drawCrash() {
+            ctx.fillStyle = "rgba(255, 0, 0, " + ctx.globalAlpha + ")";
+            crashParticles.forEach(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.opacity -= 0.02;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = p.opacity;
+            });
+            ctx.globalAlpha = 1;
+        }
+
+        function loop(timestamp) {
+            if (!gameRunning) {
+                stopSpawning();
+                return;
+            }
+            if (gamePaused) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (keys.left) car.x -= car.speed;
+            if (keys.right) car.x += car.speed;
+            if (keys.up) car.y -= car.speed;
+            if (keys.down) car.y += car.speed;
+
+            car.x = Math.max(0, Math.min(canvas.width - car.width, car.x));
+            car.y = Math.max(0, Math.min(canvas.height - car.height, car.y));
+
+            drawCar();
+            updateSmoke();
+            drawSmoke();
+
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                const o = obstacles[i];
+                o.y += o.speed;
+                ctx.fillStyle = "#f00";
+                ctx.fillRect(o.x, o.y, o.width, o.height);
+                if (o.y > canvas.height) obstacles.splice(i, 1);
+                else if (checkCollision(car, o)) {
+                    if (soundEnabled) crashSound.play();
+                    if ("vibrate" in navigator) navigator.vibrate([200, 100, 200]); // Vibrate on crash
+                    triggerCrashEffect();
+                    gameRunning = false;
+                    stopSpawning();
+                    if (score > highScore) {
+                        highScore = score;
+                        localStorage.setItem("highScore", highScore);
+                        document.getElementById("highScore").textContent = highScore;
+                    }
+                    alert("💥 You crashed!\nScore: " + score + "\nHigh Score: " + highScore);
+                    document.getElementById("startScreen").style.display = "flex";
+                    return;
+                }
+            }
+
+            drawCrash();
+
+            if (timestamp - lastScoreTime >= 1000) {
+                score++;
+                lastScoreTime = timestamp;
+                document.getElementById("scoreDisplay").textContent = "Score: " + score;
+            }
+
+            requestAnimationFrame(loop);
+        }
+
+        function checkCollision(a, b) {
+            return a.x < b.x + b.width && a.x + a.width > b.x &&
+                a.y < b.y + b.height && a.y + a.height > b.y;
+        }
+
+        // Keyboard controls (Arrow keys and WASD)
+        document.addEventListener("keydown", (e) => {
+            if (!gameRunning || gamePaused) return;
+            switch (e.key) {
+                case "ArrowLeft":
+                case "a":
+                case "A":
+                    keys.left = true;
+                    break;
+                case "ArrowRight":
+                case "d":
+                case "D":
+                    keys.right = true;
+                    break;
+                case "ArrowUp":
+                case "w":
+                case "W":
+                    keys.up = true;
+                    break;
+                case "ArrowDown":
+                case "s":
+                case "S":
+                    keys.down = true;
+                    break;
+            }
+        });
+
+        document.addEventListener("keyup", (e) => {
+            switch (e.key) {
+                case "ArrowLeft":
+                case "a":
+                case "A":
+                    keys.left = false;
+                    break;
+                case "ArrowRight":
+                case "d":
+                case "D":
+                    keys.right = false;
+                    break;
+                case "ArrowUp":
+                case "w":
+                case "W":
+                    keys.up = false;
+                    break;
+                case "ArrowDown":
+                case "s":
+                case "S":
+                    keys.down = false;
+                    break;
+            }
+        });
+
+        // On-screen button controls
+        ["up", "down", "left", "right"].forEach(dir => {
+            const btn = document.getElementById(dir + "Btn");
+            btn.addEventListener("mousedown", (e) => {
+                e.preventDefault();
+                if (gameRunning && !gamePaused) keys[dir] = true;
+            });
+            btn.addEventListener("touchstart", (e) => {
+                e.preventDefault();
+                if (gameRunning && !gamePaused) keys[dir] = true;
+            });
+            btn.addEventListener("mouseup", (e) => {
+                e.preventDefault();
+                keys[dir] = false;
+            });
+            btn.addEventListener("touchend", (e) => {
+                e.preventDefault();
+                keys[dir] = false;
+            });
+        });
+
+        // Start button
+        document.getElementById("startBtn").addEventListener("click", (e) => {
+            e.preventDefault();
+            console.log("Start button clicked");
+            resetGame();
+        });
+
+        // Menu controls
+        document.getElementById("menuBtn").addEventListener("click", () => {
+            const menu = document.getElementById("menu");
+            menu.style.display = menu.style.display === "flex" ? "none" : "flex";
+        });
+
+        document.querySelectorAll(".level-btn").forEach(btn => {
+            btn.addEventListener("click", () => {
+                document.querySelectorAll(".level-btn").forEach(b => b.classList.remove("active"));
+                btn.classList.add("active");
+                const level = btn.dataset.level;
+                spawnRate = levelSettings[level].spawnRate;
+                if (gameRunning && !gamePaused) startSpawning();
+            });
+        });
+
+        document.getElementById("pauseBtn").addEventListener("click", () => {
+            gamePaused = true;
+            stopSpawning();
+        });
+
+        document.getElementById("resumeBtn").addEventListener("click", () => {
+            if (gameRunning && gamePaused) {
+                gamePaused = false;
+                startSpawning();
+                requestAnimationFrame(loop);
+            }
+        });
+
+        document.getElementById("restartBtn").addEventListener("click", () => {
+            resetGame();
+        });
+
+        document.getElementById("carSpeed").addEventListener("input", (e) => {
+            car.speed = parseInt(e.target.value);
+            document.getElementById("carSpeedValue").textContent = car.speed;
+        });
+
+        document.getElementById("obstacleSpeed").addEventListener("input", (e) => {
+            const speed = parseInt(e.target.value);
+            document.getElementById("obstacleSpeedValue").textContent = speed;
+            obstacles.forEach(o => o.speed = speed);
+        });
+
+        document.getElementById("carColor").addEventListener("input", (e) => {
+            car.color = e.target.value;
+        });
+
+        document.getElementById("soundBtn").addEventListener("click", () => {
+            soundEnabled = !soundEnabled;
+            document.getElementById("soundBtn").textContent = soundEnabled ? "Toggle Sound" : "Sound Off";
+        });
+
+        document.getElementById("startScreen").style.display = "flex";
+        document.getElementById("menu").style.display = "none";
+    </script>
+</body>
+
+</html>
